@@ -233,7 +233,7 @@ void BallEx::Render(const unsigned int renderMask)
          // only shrink ball to avoid artifact of the ball being rendered over resting parts
          /* if (sy > sx) antiStretch.y = sx / sy; else antiStretch.x = sy / sx; */
          // balance stretching/enlarging to avoid having too much size difference between ball at the top / ball at the bottom
-        antiStretch.x = 0.45f * (1.0f + sy / sx);
+        antiStretch.x = 0.5f * (1.0f + sy / sx);
         antiStretch.y = 0.53f * (1.0f + sx / sy);
       }
    }
