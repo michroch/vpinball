@@ -310,7 +310,7 @@ public:
    STDMETHOD(put_EnvironmentImage)(/*[in]*/ BSTR newVal);
 
    STDMETHOD(get_Version)(/*[out, retval]*/ int *pVal);
-   STDMETHOD(get_VPBuildVersion)(/*[out, retval]*/ int *pVal);
+   STDMETHOD(get_VPBuildVersion)(/*[out, retval]*/ double *pVal);
    STDMETHOD(get_VersionMajor)(/*[out, retval]*/ int *pVal);
    STDMETHOD(get_VersionMinor)(/*[out, retval]*/ int *pVal);
    STDMETHOD(get_VersionRevision)(/*[out, retval]*/ int *pVal);
@@ -890,6 +890,7 @@ public:
    STDMETHOD(GetTextFile)(BSTR FileName, /*[out, retval]*/ BSTR *pContents);
    STDMETHOD(GetCustomParam)(/*[in]*/ long index, /*[out, retval]*/ BSTR *param);
    STDMETHOD(get_Setting)(BSTR Section, BSTR SettingName, /*[out, retval]*/ BSTR *param);
+   STDMETHOD(get_FrameIndex)(/*[out, retval]*/ long *pVal);
    STDMETHOD(get_GameTime)(/*[out, retval]*/ long *pVal);
    STDMETHOD(get_SystemTime)(/*[out, retval]*/ long *pVal);
    STDMETHOD(get_AddCreditKey)(/*[out, retval]*/ long *pVal);
@@ -967,7 +968,7 @@ public:
    STDMETHOD(get_ActiveTable)(/*[out, retval]*/ ITable **pVal);
 
    STDMETHOD(get_Version)(/*[out, retval]*/ int *pVal);
-   STDMETHOD(get_VPBuildVersion)(/*[out, retval]*/ int *pVal);
+   STDMETHOD(get_VPBuildVersion)(/*[out, retval]*/ double *pVal);
    STDMETHOD(get_VersionMajor)(/*[out, retval]*/ int *pVal);
    STDMETHOD(get_VersionMinor)(/*[out, retval]*/ int *pVal);
    STDMETHOD(get_VersionRevision)(/*[out, retval]*/ int *pVal);

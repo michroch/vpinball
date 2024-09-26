@@ -45,6 +45,9 @@ SolCallbackInitialized = False
 Dim ExtraKeyHelp ' Help string for game specific keys
 Dim vpmShowDips  ' Show DIPs function
 
+' Check if VPX version offers FrameIndex property
+Dim HasFrameIndex : HasFrameIndex = Not IsEmpty(Eval("FrameIndex"))
+
 Private vpmVPVer : vpmVPVer = vpmCheckVPVer()
 
 Private Function PinMAMEInterval
@@ -1595,7 +1598,7 @@ Class cvpmMech
 	End Sub
 
 	Public Sub AddPulseSwNew(aSwNo, aInterval, aStart, aEnd)
-		If Controller.Version >= "01200000" Then
+		If Controller.Version >= 01200000 Then
 			mSw(mNextSw) = Array(aSwNo, aStart, aEnd, aInterval)
 		Else
 			mSw(mNextSw) = Array(aSwNo, -aInterval, aEnd - aStart + 1, 0)
@@ -2209,7 +2212,7 @@ Class cvpmFlips2 'test fastflips switches to rom control after 100ms or so delay
 			'str = "init successful" &vbnewline& _
 			'	"Sol=" & Solenoid & " " & sol &vbnewline& str
 			'msgbox str
-			'vpmFlips.DebugTestInit = True	'removed debug stuff for the moment
+			'vpmFlips.DebugTestInit = True 'removed debug stuff for the moment
 		End If
 	End Sub
 
@@ -2354,7 +2357,7 @@ Public Sub vpmInit(aTable)
 		If Not IsObject(GetRef(aTable.name & "_UnPaused")) Or Err Then Err.Clear : vpmBuildEvent aTable, "UnPaused", "Controller.Pause = False"
 		If Not IsObject(GetRef(aTable.name & "_Exit")) Or Err Then Err.Clear : vpmBuildEvent aTable, "Exit", "Controller.Pause = False:Controller.Stop"
 	End If
-	
+
 	' FIXME PROC does not support Modulated solenoid and will fail
 	If UseModSol Then
 		If Controller.Version >= 03060000 Then
@@ -2367,7 +2370,12 @@ Public Sub vpmInit(aTable)
 			UseModSol=0
 		End If
 	End If
-	
+
+	If HasTimeFence Then
+		' Force emulation to be in sync with VPX (in turn it pauses it on startup until VPX is ready, this way both starts together in sync)
+		If PreciseGameTime > 0 Then Controller.TimeFence = PreciseGameTime Else Controller.TimeFence = 0.01
+	End If
+
 	vpmFlips.Init
 End Sub
 
@@ -2416,7 +2424,7 @@ Private vpmTrueFalse : vpmTrueFalse = Array(" True", " False"," True")
 Sub InitSolCallbacks
 	If SolCallbackInitialized Then Exit Sub
 
-	' Calling Execute can be an heavy operation depending on user setup as it seems that security programs like Microsoft Defender are triggered by this call
+	' Calling Execute can be a heavy operation depending on user setup as it seems that security programs like Microsoft Defender are triggered by this call
 	' Therefore we add the callbacks to the script during vpmInit using ExecuteGlobal to prevent stutters during play
 	Dim sol, cbs: cbs = ""
 	For sol = 0 To UBound(SolCallback)
@@ -2446,22 +2454,33 @@ Sub vpmDoLampUpdate(aNo, aEnabled)
 	On Error Goto 0
 End Sub
 
+Dim LastPinMameVisualSync : LastPinMameVisualSync = 0
 Sub PinMAMETimer_Timer
 	Dim ChgLamp, ChgSol,ChgGI, ii, tmp, idx, ChgLed
 	Dim DMDp
 	Dim ChgNVRAM
 
+	' To limit the performance impact, lights are updated at most once per frame (or at most at 100Hz if FrameIndex is not available on older VP(X) versions)
+	Dim UpdateVisual
+	If HasFrameIndex Then
+		UpdateVisual = (FrameIndex <> LastPinMameVisualSync)
+		If UpdateVisual Then LastPinMameVisualSync = FrameIndex
+	Else
+		UpdateVisual = GameTime - LastPinMameVisualSync > 10
+		If UpdateVisual Then LastPinMameVisualSync = GameTime
+	End If
+
 	'Me.Enabled = False 'this was supposed to be some kind of weird mutex, disable it
 
 	On Error Resume Next
-		If UseDMD Then
+		If UpdateVisual And UseDMD Then
 			DMDp = Controller.RawDmdPixels
 			If Not IsEmpty(DMDp) Then
 				DMDWidth = Controller.RawDmdWidth
 				DMDHeight = Controller.RawDmdHeight
 				DMDPixels = DMDp
 			End If
-		ElseIf UseColoredDMD Then
+		ElseIf UpdateVisual And UseColoredDMD Then
 			DMDp = Controller.RawDmdColoredPixels
 			If Not IsEmpty(DMDp) Then
 				DMDWidth = Controller.RawDmdWidth
@@ -2475,10 +2494,10 @@ Sub PinMAMETimer_Timer
 				If(Not IsEmpty(ChgNVRAM)) Then NVRAMCallback ChgNVRAM
 			End If
 		End If
-		If UseLamps Then ChgLamp = Controller.ChangedLamps Else LampCallback
-		If UsePdbLeds Then ChgLed = Controller.ChangedPDLeds Else PDLedCallback
+		If UpdateVisual And UseLamps Then ChgLamp = Controller.ChangedLamps Else LampCallback
+		If UpdateVisual And UsePdbLeds Then ChgLed = Controller.ChangedPDLeds Else PDLedCallback
 		If UseSolenoids Then ChgSol = Controller.ChangedSolenoids
-		If (Not GICallback is Nothing) Or (Not GICallback2 is Nothing) Then ChgGI = Controller.ChangedGIStrings
+		If UpdateVisual And ((Not GICallback is Nothing) Or (Not GICallback2 is Nothing)) Then ChgGI = Controller.ChangedGIStrings
 		MotorCallback
 	On Error Goto 0
 
